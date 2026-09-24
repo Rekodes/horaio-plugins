@@ -1,0 +1,17 @@
+{
+  "name": "horaio",
+  "owner": {
+    "name": "Rekodes"
+  },
+  "metadata": {
+    "description": "Plugins de Horaio: el fichador automático para quien trabaja con agentes de IA."
+  },
+  "plugins": [
+    {
+      "name": "horaio",
+      "source": "./horaio",
+      "description": "Mide el tiempo real de trabajo con el agente y lo apunta en Horaio, sin que el modelo tenga que acordarse.",
+      "version": "0.1.2"
+    }
+  ]
+}

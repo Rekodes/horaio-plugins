@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/horaio-beat-hook session-start", "timeout": 5 }] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/horaio-beat-hook", "async": true }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/horaio-beat-hook", "async": true }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/horaio-beat-hook", "async": true }] }
+    ]
+  }
+}

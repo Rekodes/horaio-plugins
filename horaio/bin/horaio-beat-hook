@@ -1,0 +1,28 @@
+#!/bin/sh
+# Lanzador de horaio-beat para los hooks del plugin (ADR-0010).
+#
+# Busca el binario en este orden: el que trae el plugin para esta plataforma,
+# el de ~/.horaio/bin y el del PATH. Sin binario, usa el script del plugin. Nunca lee stdin ni falla: un hook que falla
+# interrumpe al agente.
+root="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+os=$(uname -s | tr '[:upper:]' '[:lower:]')
+case "$(uname -m)" in
+  arm64|aarch64) arch=arm64 ;;
+  *) arch=amd64 ;;
+esac
+
+for candidate in "$root/bin/$os-$arch/horaio-beat" "$HOME/.horaio/bin/horaio-beat" "$(command -v horaio-beat 2>/dev/null)"; do
+  if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+    exec "$candidate" "$@" </dev/null
+  fi
+done
+
+# Sin binario: el script del propio plugin (sh y curl, en macOS y Linux).
+config="${HORAIO_CONFIG:-$HOME/.horaio/config.toml}"
+if [ "${1:-}" = "session-start" ]; then
+  if [ -z "${HORAIO_DEVICE_TOKEN:-}" ] && ! grep -q '^device_token' "$config" 2>/dev/null; then
+    echo "Horaio no mide esta sesión: falta el token de este equipo. Díselo al usuario: se genera en https://app.horaio.com/conectar"
+  fi
+  exit 0
+fi
+exec sh "$root/bin/horaio-beat.sh" </dev/null

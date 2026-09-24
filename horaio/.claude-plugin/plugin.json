@@ -1,0 +1,11 @@
+{
+  "name": "horaio",
+  "version": "0.1.2",
+  "description": "El sensor de Horaio: un latido en cada prompt, herramienta y fin de turno. Solo manda el nombre del proyecto, nunca contenido.",
+  "author": {
+    "name": "Rekodes"
+  },
+  "homepage": "https://app.horaio.com",
+  "repository": "https://github.com/Rekodes/horaio-plugins",
+  "license": "MIT"
+}
