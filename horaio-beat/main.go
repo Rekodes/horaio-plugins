@@ -6,6 +6,8 @@
 //	horaio-beat status                          muestra la configuración y si el servidor responde
 //	horaio-beat mcp-headers                     cabecera de autenticación para el servidor MCP
 //	horaio-beat session-start                   una línea de aviso si falta configurar; si no, nada
+//	horaio-beat antigravity-hook                el hook de Antigravity: lee su JSON y contesta {}
+//	horaio-beat handoff-hook                    tras record_activity, sugiere /clear si hay mucho contexto
 //	horaio-beat version                         imprime la versión
 //
 // Al latir no escribe nada en stdout y sale siempre con 0: lo que imprime un
@@ -19,9 +21,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"time"
 
-	"github.com/Rekodes/horario/packages/horaio-beat/internal/beat"
+	"github.com/Rekodes/horaio/packages/horaio-beat/internal/beat"
 )
 
 // version la fija el build con -ldflags "-X main.version=...".
@@ -43,8 +46,14 @@ func main() {
 		case "session-start":
 			sessionStart()
 			return
+		case "antigravity-hook":
+			antigravityHook()
+			return
+		case "handoff-hook":
+			handoffHook()
+			return
 		case "help", "--help", "-h":
-			fmt.Println("uso: horaio-beat [carpeta] | connect --token crn_... [--server URL] | status | mcp-headers | session-start | version")
+			fmt.Println("uso: horaio-beat [carpeta] | connect --token crn_... [--server URL] | status | mcp-headers | session-start | antigravity-hook | handoff-hook | version")
 			return
 		}
 	}
@@ -91,6 +100,34 @@ func status() {
 func sessionStart() {
 	if line := beat.SessionNotice(beat.LoadConfig(os.Getenv, home())); line != "" {
 		fmt.Println(line)
+	}
+}
+
+// antigravityHook lo llama el hook de Antigravity. Antigravity espera un
+// objeto JSON en stdout y para al agente mientras el hook corre, así que
+// contesta `{}` enseguida y el latido lo manda un proceso aparte, que sigue
+// cuando este sale. Sin carpeta de trabajo no late: la actual es la de
+// hooks.json, no la del proyecto.
+func antigravityHook() {
+	dir := beat.WorkspaceDir(os.Stdin)
+	fmt.Println("{}")
+	if dir == "" {
+		return
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	if err := exec.Command(exe, dir).Start(); err != nil && os.Getenv("HORAIO_BEAT_DEBUG") != "" {
+		fmt.Fprintln(os.Stderr, "horaio-beat:", err)
+	}
+}
+
+// handoffHook lo llama el PostToolUse de record_activity (ADR-0035). Lo que
+// imprime llega al contexto del modelo: por debajo del umbral, nada.
+func handoffHook() {
+	if out := beat.HandoffHook(os.Stdin, os.Getenv, beat.StateDir()); out != "" {
+		fmt.Println(out)
 	}
 }
 

@@ -16,8 +16,9 @@ de Go.
 | El token del dispositivo, en la cabecera `Authorization` | Rutas completas, nombres de fichero, contenido |
 | `User-Agent: horaio-beat/<versión>` | Nada de lo que el cliente le pase por stdin |
 
-**No lee stdin.** Claude Code le pasa el prompt y la salida de cada
-herramienta, y el binario nunca los abre. El servidor, además, rechaza
+**El latido no lee stdin.** Claude Code le pasa el prompt y la salida de cada
+herramienta, y el binario nunca los abre al latir. En Antigravity solo lee la
+carpeta de trabajo (ver `antigravity-hook`). El servidor, además, rechaza
 cualquier campo que no sea `project_hint`.
 
 ## Uso
@@ -28,8 +29,24 @@ horaio-beat connect --token crn_... [--server URL]
                                               guarda el token de este dispositivo
 horaio-beat status                            configuración y si el servidor responde
 horaio-beat mcp-headers                       cabecera Authorization para el servidor MCP
+horaio-beat antigravity-hook                  el hook de Antigravity: lee su JSON y contesta {}
+horaio-beat handoff-hook                      tras record_activity, sugiere /clear si hay mucho contexto
 horaio-beat version                           imprime la versión
 ```
+
+`antigravity-hook` es la excepción a «no lee stdin»: Antigravity ejecuta los
+hooks desde `~/.gemini/config` y no desde el proyecto, así que la carpeta sale
+de `workspacePaths` en el JSON que le pasa. Solo decodifica ese campo, contesta
+`{}` (Antigravity espera un objeto JSON y para al agente mientras el hook
+corre) y manda el latido desde un proceso aparte.
+
+`handoff-hook` es la otra excepción, y no manda nada por red (ADR-0035). Solo
+lo lanza el plugin opcional `horaio-contexto`, en el `PostToolUse` de
+`record_activity` en Claude Code: del JSON solo lee
+`session_id`, `transcript_path` y `tool_response`, y del transcript solo el
+uso de tokens de cada respuesta. Si la conversación pasa de
+`HORAIO_HANDOFF_MIN_TOKENS` (200.000; 0 lo apaga), pide al agente sugerir
+`/clear`, y no repite hasta otros `HORAIO_HANDOFF_STEP_TOKENS` (100.000).
 
 `connect` escribe `~/.horaio/config.toml` con permisos 600, en el mismo
 formato que `horaio connect`; `--server` es opcional y por defecto apunta a

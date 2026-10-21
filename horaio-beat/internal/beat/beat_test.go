@@ -3,6 +3,7 @@ package beat
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -358,5 +359,127 @@ func TestSessionNoticeSoloHablaSiFaltaConfigurar(t *testing.T) {
 	}
 	if !strings.Contains(SessionNotice(Config{}), "horaio-beat connect") {
 		t.Fatal("sin configurar, tiene que decir cómo arreglarlo")
+	}
+}
+
+// --------------------------------------------------------------- antigravity
+
+func TestWorkspaceDirSaleDelJSONDelHook(t *testing.T) {
+	payload := `{"toolCall":{"name":"run_command","args":{"CommandLine":"npm test"}},` +
+		`"stepIdx":19,"conversationId":"ec33","workspacePaths":["/Users/ana/tienda","/Users/ana/otra"],"modelName":"auto"}`
+
+	if got := WorkspaceDir(strings.NewReader(payload)); got != "/Users/ana/tienda" {
+		t.Fatalf("WorkspaceDir = %q", got)
+	}
+}
+
+func TestWorkspaceDirAceptaURIsDeFichero(t *testing.T) {
+	payload := `{"workspacePaths":["file:///Users/ana/mi%20tienda"]}`
+
+	if got := WorkspaceDir(strings.NewReader(payload)); got != "/Users/ana/mi tienda" {
+		t.Fatalf("WorkspaceDir = %q", got)
+	}
+}
+
+func TestWorkspaceDirSinCarpetaEsVacio(t *testing.T) {
+	for _, payload := range []string{`{"workspacePaths":[]}`, `{"stepIdx":3}`, `no es json`, ``} {
+		if got := WorkspaceDir(strings.NewReader(payload)); got != "" {
+			t.Fatalf("WorkspaceDir(%q) = %q", payload, got)
+		}
+	}
+}
+
+// ------------------------------------------------------------------ handoff
+
+func transcript(t *testing.T, contexts ...int) string {
+	t.Helper()
+	var b strings.Builder
+	b.WriteString(`{"type":"user","message":{"content":"hola"}}` + "\n")
+	for _, tokens := range contexts {
+		fmt.Fprintf(&b, `{"type":"assistant","message":{"usage":{"input_tokens":10,"cache_read_input_tokens":%d,"cache_creation_input_tokens":0}}}`+"\n", tokens-10)
+	}
+	// Un subagente con más contexto no es el de esta conversación.
+	b.WriteString(`{"type":"assistant","isSidechain":true,"message":{"usage":{"input_tokens":900000}}}` + "\n")
+	path := filepath.Join(t.TempDir(), "sesion.jsonl")
+	writeFile(t, path, b.String())
+	return path
+}
+
+func hookEvent(path, toolResponse string) io.Reader {
+	return strings.NewReader(`{"session_id":"s-1","transcript_path":"` + path + `","tool_response":` + toolResponse + `}`)
+}
+
+func handoffContext(t *testing.T, out string) string {
+	t.Helper()
+	var parsed struct {
+		HookSpecificOutput struct {
+			HookEventName     string `json:"hookEventName"`
+			AdditionalContext string `json:"additionalContext"`
+		} `json:"hookSpecificOutput"`
+	}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("salida no es JSON: %q", out)
+	}
+	if parsed.HookSpecificOutput.HookEventName != "PostToolUse" {
+		t.Fatalf("hookEventName = %q", parsed.HookSpecificOutput.HookEventName)
+	}
+	return parsed.HookSpecificOutput.AdditionalContext
+}
+
+func TestContextTokensEsElUltimoMensajeDelAsistente(t *testing.T) {
+	got, err := ContextTokens(transcript(t, 120_000, 250_000))
+	if err != nil || got != 250_000 {
+		t.Fatalf("ContextTokens = %d, %v", got, err)
+	}
+}
+
+func TestHandoffHookCallaPorDebajoDelUmbral(t *testing.T) {
+	out := HandoffHook(hookEvent(transcript(t, 150_000), `"{}"`), envFrom(nil), t.TempDir())
+	if out != "" {
+		t.Fatalf("no debía avisar: %q", out)
+	}
+}
+
+func TestHandoffHookAvisaUnaVezPorTramo(t *testing.T) {
+	state := t.TempDir()
+	env := envFrom(nil)
+
+	first := HandoffHook(hookEvent(transcript(t, 250_000), `"{\"stored\":true}"`), env, state)
+	if msg := handoffContext(t, first); !strings.Contains(msg, "250k") || !strings.Contains(msg, "retoma") {
+		t.Fatalf("aviso = %q", msg)
+	}
+	if again := HandoffHook(hookEvent(transcript(t, 300_000), `"{}"`), env, state); again != "" {
+		t.Fatalf("no debía repetir antes de otros 100k: %q", again)
+	}
+	if later := HandoffHook(hookEvent(transcript(t, 360_000), `"{}"`), env, state); later == "" {
+		t.Fatal("tenía que volver a avisar pasados 100k más")
+	}
+}
+
+func TestHandoffHookEnSoloMedirNoPrometeRetomar(t *testing.T) {
+	for _, response := range []string{
+		`"{\"stored\":true,\"agent_memory\":false}"`,
+		`[{"type":"text","text":"{\"stored\":true,\"agent_memory\":false}"}]`,
+		`{"content":[{"type":"text","text":"{\"stored\":true,\"agent_memory\":false}"}]}`,
+	} {
+		msg := handoffContext(t, HandoffHook(hookEvent(transcript(t, 250_000), response), envFrom(nil), t.TempDir()))
+		if strings.Contains(msg, "retoma") || strings.Contains(msg, "record_open_loop") {
+			t.Fatalf("con la memoria apagada no hay handoff que prometer: %q", msg)
+		}
+	}
+}
+
+func TestHandoffHookSeApagaConUmbralCero(t *testing.T) {
+	env := envFrom(map[string]string{"HORAIO_HANDOFF_MIN_TOKENS": "0"})
+	if out := HandoffHook(hookEvent(transcript(t, 900_000), `"{}"`), env, t.TempDir()); out != "" {
+		t.Fatalf("apagado, no debía avisar: %q", out)
+	}
+}
+
+func TestHandoffHookSinTranscriptNoDiceNada(t *testing.T) {
+	for _, payload := range []string{`no es json`, `{}`, `{"transcript_path":"/no/existe.jsonl"}`} {
+		if out := HandoffHook(strings.NewReader(payload), envFrom(nil), t.TempDir()); out != "" {
+			t.Fatalf("HandoffHook(%q) = %q", payload, out)
+		}
 	}
 }

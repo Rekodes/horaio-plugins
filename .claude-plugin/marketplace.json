@@ -12,6 +12,12 @@
       "source": "./horaio",
       "description": "Mide el tiempo real de trabajo con el agente y lo apunta en Horaio, sin que el modelo tenga que acordarse.",
       "version": "0.1.2"
+    },
+    {
+      "name": "horaio-contexto",
+      "source": "./horaio-contexto",
+      "description": "Opcional. Cuando la conversación pasa de 200k tokens de contexto, el agente te sugiere /clear. Mide en tu máquina y no manda nada.",
+      "version": "0.1.0"
     }
   ]
 }

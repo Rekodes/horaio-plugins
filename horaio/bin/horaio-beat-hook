@@ -21,7 +21,7 @@ done
 config="${HORAIO_CONFIG:-$HOME/.horaio/config.toml}"
 if [ "${1:-}" = "session-start" ]; then
   if [ -z "${HORAIO_DEVICE_TOKEN:-}" ] && ! grep -q '^device_token' "$config" 2>/dev/null; then
-    echo "Horaio no mide esta sesión: falta el token de este equipo. Díselo al usuario: se genera en https://app.horaio.com/conectar"
+    echo "Horaio no mide esta sesión: falta el token de este equipo. Díselo al usuario: se genera en https://app.horaio.com/connect"
   fi
   exit 0
 fi

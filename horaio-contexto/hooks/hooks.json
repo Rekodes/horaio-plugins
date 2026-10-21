@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "mcp__.*horaio.*__record_activity", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/horaio-contexto-hook", "timeout": 10 }] }
+    ]
+  }
+}

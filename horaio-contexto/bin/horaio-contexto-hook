@@ -1,0 +1,14 @@
+#!/bin/sh
+# Lanzador del aviso de contexto (ADR-0035): pasa a `horaio-beat handoff-hook`
+# el JSON del PostToolUse de record_activity. Busca el binario en
+# ~/.horaio/bin y en el PATH; sin él, no hace nada. Nunca falla: un hook que
+# falla interrumpe al agente.
+for candidate in "$HOME/.horaio/bin/horaio-beat" "$(command -v horaio-beat 2>/dev/null)"; do
+  if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+    # Un horaio-beat anterior tomaría «handoff-hook» por una carpeta y
+    # latiría con ese nombre de proyecto.
+    "$candidate" help 2>/dev/null | grep -q handoff-hook || exit 0
+    exec "$candidate" handoff-hook
+  fi
+done
+exit 0

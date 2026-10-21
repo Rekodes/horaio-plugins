@@ -10,6 +10,7 @@ para que puedas comprobar qué hace. El servidor de Horaio no está aquí.
 ```
 .claude-plugin/marketplace.json   marketplace «horaio» para Claude Code
 horaio/                           plugin de Claude Code: hooks y lanzador
+horaio-contexto/                  plugin opcional: sugiere /clear con mucho contexto
 horaio-beat/                      el binario que manda el latido (Go, sin dependencias)
 ```
 
@@ -78,6 +79,31 @@ falta el token o el binario, Horaio te lo dice al empezar la sesión.
 El lanzador (`horaio/bin/horaio-beat-hook`) busca `horaio-beat` junto al
 plugin, en `~/.horaio/bin/` y en el PATH. Sin binario no hace nada. Nunca
 imprime nada al latir ni falla, para no interrumpir al agente.
+
+## Opcional: `horaio-contexto`
+
+Una conversación larga reenvía todo lo anterior en cada turno: cuanto más se
+alarga, más tokens gasta cada pregunta. Este segundo plugin te avisa de cuándo
+compensa cerrarla y empezar otra. Tras cada actividad registrada, mira en el
+transcript de la sesión cuántos tokens ocupa la conversación, en tu máquina y
+sin mandarlo a ningún sitio. Por encima de 200k, el agente termina su respuesta
+con una línea como esta:
+
+> Contexto: 250k. Si has terminado con esto, puedes hacer /clear; la siguiente
+> conversación retoma con lo registrado en Horaio.
+
+Si tu cuenta está en «solo medir», la línea no habla de retomar, porque en ese
+modo Horaio no devuelve nada al empezar. Se ajusta con
+`HORAIO_HANDOFF_MIN_TOKENS` y `HORAIO_HANDOFF_STEP_TOKENS`; con
+`HORAIO_HANDOFF_MIN_TOKENS=0` no avisa.
+
+Va aparte porque, a diferencia de `horaio`, lee lo que Claude Code le pasa por
+stdin y el transcript: solo el tamaño, y no manda nada. Se instala después de
+`horaio` y necesita `horaio-beat` 0.4.0 o posterior:
+
+```
+/plugin install horaio-contexto@horaio
+```
 
 ## Actualizar
 

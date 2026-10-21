@@ -39,7 +39,7 @@ func SystemEnv(arg, version string) Env {
 		Arg:      arg,
 		Cwd:      cwd,
 		Home:     home,
-		StampDir: stampDir(),
+		StampDir: StateDir(),
 		Now:      time.Now(),
 		Client:   &http.Client{Timeout: requestTimeout},
 		Version:  version,
@@ -74,9 +74,9 @@ func interval(getenv func(string) string) time.Duration {
 	return defaultInterval
 }
 
-// stampDir es por usuario, como el de horaio-beat.sh, para compartir sellos.
+// StateDir es por usuario, como el de horaio-beat.sh, para compartir sellos.
 // En Windows os.TempDir ya es del usuario y Getuid devuelve -1.
-func stampDir() string {
+func StateDir() string {
 	name := "horaio-beat"
 	if uid := os.Getuid(); uid >= 0 {
 		name += "-" + strconv.Itoa(uid)

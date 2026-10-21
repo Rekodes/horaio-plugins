@@ -1,0 +1,11 @@
+{
+  "name": "horaio-contexto",
+  "version": "0.1.0",
+  "description": "Opcional. Cuando la conversación pasa de 200k tokens de contexto, el agente te sugiere /clear. Mide en tu máquina y no manda nada.",
+  "author": {
+    "name": "Rekodes"
+  },
+  "homepage": "https://app.horaio.com",
+  "repository": "https://github.com/Rekodes/horaio-plugins",
+  "license": "MIT"
+}

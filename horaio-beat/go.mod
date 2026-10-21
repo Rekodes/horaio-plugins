@@ -1,3 +1,3 @@
-module github.com/Rekodes/horario/packages/horaio-beat
+module github.com/Rekodes/horaio/packages/horaio-beat
 
 go 1.25
