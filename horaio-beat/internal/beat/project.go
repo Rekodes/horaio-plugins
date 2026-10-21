@@ -20,6 +20,18 @@ func SessionDir(arg, launch, cwd string) string {
 	}
 }
 
+// SessionProject es el nombre que manda el latido: el de SessionDir, salvo
+// que la sesión se abriera en el home o la raíz. Entonces no hay nombre de
+// sesión que mantener y manda el de la carpeta actual (ADR-0036). Un
+// argumento explícito sigue mandando.
+func SessionProject(arg, launch, cwd, home string) string {
+	project := ProjectName(SessionDir(arg, launch, cwd), home)
+	if project == "" && arg == "" {
+		return ProjectName(cwd, home)
+	}
+	return project
+}
+
 // ProjectName es el nombre del repositorio que contiene dir, o el de dir si
 // no está en ninguno. Desde el home o la raíz devuelve "": el servidor lo
 // guarda como «sin especificar».

@@ -76,7 +76,11 @@ Una sesión, un nombre, el mismo que se le pide al modelo en
 2. Si esa carpeta está dentro de un repositorio git, el nombre de la raíz del
    repositorio, subiendo hasta encontrar `.git` (carpeta o fichero, para los
    worktrees). No necesita tener `git` instalado.
-3. Desde el home o la raíz manda un nombre vacío, que el servidor guarda como
+3. Si la sesión se abrió en el home o la raíz, no hay nombre de sesión que
+   mantener: manda el de la carpeta actual, con la misma regla del paso 2
+   (ADR-0036). Así, cuando el agente entra en un proyecto, el tiempo pasa a
+   ese proyecto.
+4. Desde el home o la raíz manda un nombre vacío, que el servidor guarda como
    «sin especificar».
 
 ## Configuración

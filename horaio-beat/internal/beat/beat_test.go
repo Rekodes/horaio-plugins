@@ -130,6 +130,34 @@ func TestProjectNameDesdeElHomeEsSinEspecificar(t *testing.T) {
 	}
 }
 
+func TestSessionProjectAbiertaEnElHomeSigueLaCarpetaActual(t *testing.T) {
+	home := t.TempDir()
+	repo := filepath.Join(home, "claude-config")
+	writeFile(t, filepath.Join(repo, ".git", "HEAD"), "ref: refs/heads/main\n")
+
+	if got := SessionProject("", home, repo, home); got != "claude-config" {
+		t.Errorf("abierta en el home, ahora en un repo: %q", got)
+	}
+	if got := SessionProject("", home, home, home); got != "" {
+		t.Errorf("abierta y sigue en el home: %q", got)
+	}
+	if got := SessionProject(home, "", repo, home); got != "" {
+		t.Errorf("el argumento explícito manda: %q", got)
+	}
+}
+
+func TestSessionProjectAbiertaEnUnRepoNoSigueAlCd(t *testing.T) {
+	home := t.TempDir()
+	launch := filepath.Join(home, "phd-projects")
+	writeFile(t, filepath.Join(launch, ".git", "HEAD"), "ref: refs/heads/main\n")
+	other := filepath.Join(home, "ocean-app")
+	writeFile(t, filepath.Join(other, ".git", "HEAD"), "ref: refs/heads/main\n")
+
+	if got := SessionProject("", launch, other, home); got != "phd-projects" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 // ---------------------------------------------------------------- muestreo
 
 func TestShouldSendUnoPorIntervaloYProyecto(t *testing.T) {

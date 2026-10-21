@@ -11,7 +11,7 @@
       "name": "horaio",
       "source": "./horaio",
       "description": "Mide el tiempo real de trabajo con el agente y lo apunta en Horaio, sin que el modelo tenga que acordarse.",
-      "version": "0.1.2"
+      "version": "0.1.3"
     },
     {
       "name": "horaio-contexto",

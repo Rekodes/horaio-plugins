@@ -55,8 +55,7 @@ func Run(ctx context.Context, env Env) error {
 		return ErrNotConfigured
 	}
 
-	dir := SessionDir(env.Arg, env.Getenv("CLAUDE_PROJECT_DIR"), env.Cwd)
-	project := ProjectName(dir, env.Home)
+	project := SessionProject(env.Arg, env.Getenv("CLAUDE_PROJECT_DIR"), env.Cwd, env.Home)
 
 	if !ShouldSend(env.StampDir, project, env.Now, interval(env.Getenv)) {
 		return nil

@@ -49,6 +49,14 @@ top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || top="$dir"
 name=$(basename "$top")
 if [ "$top" = "$HOME" ] || [ "$top" = "/" ]; then
   name=""
+  # Abierta en el home o la raíz no hay nombre de sesión que mantener: sin
+  # argumento, manda el de la carpeta actual (ADR-0036).
+  if [ -z "${1:-}" ]; then
+    top=$(git -C "$PWD" rev-parse --show-toplevel 2>/dev/null) || top="$PWD"
+    if [ "$top" != "$HOME" ] && [ "$top" != "/" ]; then
+      name=$(basename "$top")
+    fi
+  fi
 fi
 
 # Muestreo local: un hook en cada herramienta dispara varias veces por minuto.

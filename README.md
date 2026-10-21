@@ -18,8 +18,8 @@ horaio-beat/                      el binario que manda el latido (Go, sin depend
 
 En cada prompt, cada herramienta que usa el agente y cada fin de turno,
 `horaio-beat` manda **un solo dato**: el nombre de la carpeta donde se abrió la
-sesión, o de la raíz de su repositorio git. Como mucho una vez por minuto y
-proyecto.
+sesión, o de la raíz de su repositorio git; si se abrió en el home, el de la
+carpeta actual. Como mucho una vez por minuto y proyecto.
 
 ```json
 { "project_hint": "mi-proyecto" }
